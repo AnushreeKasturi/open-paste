@@ -24,6 +24,11 @@ export function isComponentFile(path) {
 	return path.endsWith('.tsx') && basename(path, '.tsx') === basename(dirname(path))
 }
 
+/** A TypeScript file under the renderer, where the React code lives. */
+export function isRendererTypeScript(path) {
+	return path.startsWith(`${RENDERER}/`) && /\.tsx?$/.test(path)
+}
+
 /**
  * The conventions to check. Each rule has an id, a one-line description and fix (shown once per
  * run), the files it applies to, and a check that returns `{ node, message }` for each problem in
@@ -48,6 +53,23 @@ export const RULES = [
 
 			return problems
 		}
+	},
+	{
+		id: 'no-void-operator',
+		description: "Don't use the void operator.",
+		fix: 'Call the function as a plain statement, and give an arrow function that returns nothing a block body.',
+		appliesTo: isRendererTypeScript,
+		check(sourceFile) {
+			const problems = []
+			const visit = (node) => {
+				// The `void` type is a different node, so only the operator is flagged.
+				if (ts.isVoidExpression(node)) problems.push({ node, message: 'void operator' })
+				ts.forEachChild(node, visit)
+			}
+			visit(sourceFile)
+
+			return problems
+		}
 	}
 ]
 
@@ -66,7 +88,8 @@ export function checkFile(path, text) {
 		text,
 		ts.ScriptTarget.Latest,
 		true,
-		ts.ScriptKind.TSX
+		// TSX parsing reads `<T>x` as JSX, so plain .ts files need their own kind.
+		path.endsWith('.ts') ? ts.ScriptKind.TS : ts.ScriptKind.TSX
 	)
 
 	return rules.flatMap((rule) =>

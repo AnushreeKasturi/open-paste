@@ -72,6 +72,64 @@ describe('no-types-in-components', () => {
 	})
 })
 
+describe('no-void-operator', () => {
+	const APP = 'src/renderer/src/shelf/shelf-app/shelf-app.tsx'
+
+	it('flags the void operator with its line and column', () => {
+		const source = [
+			'const load = async () => {}',
+			'',
+			'const Shelf = () => {',
+			'	void load()',
+			'	const run = () => void load()',
+			'',
+			'	return null',
+			'}'
+		].join('\n')
+
+		expect(checkFile(APP, source)).toEqual([
+			expect.objectContaining({
+				line: 4,
+				column: 2,
+				rule: 'no-void-operator',
+				message: 'void operator'
+			}),
+			expect.objectContaining({
+				line: 5,
+				column: 20,
+				rule: 'no-void-operator',
+				message: 'void operator'
+			})
+		])
+	})
+
+	it('allows the void type in annotations', () => {
+		const source = [
+			'const f = (): void => {}',
+			'let g: () => void',
+			'const h: Promise<void> = Promise.resolve()'
+		].join('\n')
+
+		expect(checkFile(APP, source)).toEqual([])
+	})
+
+	it('checks plain .ts files too, and parses their casts as TypeScript', () => {
+		const source = ['const n = <number>value', 'void load()'].join('\n')
+
+		expect(checkFile('src/renderer/src/lib/store.ts', source)).toEqual([
+			expect.objectContaining({ line: 2, column: 1, rule: 'no-void-operator' })
+		])
+	})
+
+	it('only applies to renderer TypeScript', () => {
+		const source = 'void load()\n'
+
+		expect(checkFile('src/main/index.ts', source)).toEqual([])
+		expect(checkFile('src/renderer/src/shelf/shelf-app/shelf-app.css', source)).toEqual([])
+		expect(checkFile('src/renderer/src/index.html', source)).toEqual([])
+	})
+})
+
 describe('formatReport', () => {
 	const plain = createColors(false)
 

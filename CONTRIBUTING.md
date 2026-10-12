@@ -31,7 +31,7 @@ pnpm cleaner
 
 `pnpm cleaner` checks the conventions below that Prettier and TypeScript don't, and tells you
 how to fix anything it finds. Right now it checks that component files declare no interfaces or
-types.
+types, and that renderer TypeScript doesn't use the `void` operator.
 
 - Keep pull requests focused: one fix or feature each.
 - Add or update tests in `tests/` when you change classification, search, settings or the store.
